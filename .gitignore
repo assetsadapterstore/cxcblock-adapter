@@ -1,0 +1,6 @@
+.idea
+cxcblock/conf
+openwtester/conf
+openwtester/data
+openwtester/openw_data
+go.sum
