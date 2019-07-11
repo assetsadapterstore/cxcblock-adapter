@@ -73,9 +73,10 @@ func TestListUnspent(t *testing.T) {
 
 func TestEstimateFee(t *testing.T) {
 	feeRate, _ := tw.EstimateFeeRate()
-	t.Logf("EstimateFee feeRate = %s\n", feeRate.StringFixed(8))
-	fees, _ := tw.EstimateFee(10, 2, feeRate)
-	t.Logf("EstimateFee fees = %s\n", fees.StringFixed(8))
+	//feeRate, _ := decimal.NewFromString("0.0001")
+	t.Logf("EstimateFee feeRate = %s\n", feeRate.StringFixed(6))
+	fees, _ := tw.EstimateFee(10, 1, feeRate)
+	t.Logf("EstimateFee fees = %s\n", fees.StringFixed(6))
 }
 
 func TestWalletManager_ImportAddress(t *testing.T) {

@@ -21,6 +21,7 @@ import (
 	"github.com/blocktree/openwallet/openwallet"
 	"github.com/shopspring/decimal"
 	"github.com/tidwall/gjson"
+	"math"
 )
 
 type WalletManager struct {
@@ -178,27 +179,27 @@ func (wm *WalletManager) ImportAddress(address, account string) error {
 //EstimateFee 预估手续费
 func (wm *WalletManager) EstimateFee(inputs, outputs int64, feeRate decimal.Decimal) (decimal.Decimal, error) {
 
-	//var piece int64 = 1
-	//
-	////UTXO如果大于设定限制，则分拆成多笔交易单发送
-	//if inputs > int64(wm.Config.MaxTxInputs) {
-	//	piece = int64(math.Ceil(float64(inputs) / float64(wm.Config.MaxTxInputs)))
-	//}
-	//
-	////计算公式如下：148 * 输入数额 + 34 * 输出数额 + 10
-	//trx_bytes := decimal.New(inputs*148+outputs*34+piece*10, 0)
-	//trx_fee := trx_bytes.Div(decimal.New(1000, 0)).Mul(feeRate)
-	//trx_fee = trx_fee.Round(wm.Decimal())
-	////wm.Log.Debugf("trx_fee: %s", trx_fee.String())
-	////wm.Log.Debugf("MinFees: %s", wm.Config.MinFees.String())
-	////是否低于最小手续费
-	//if trx_fee.LessThan(wm.Config.MinFees) {
-	//	trx_fee = wm.Config.MinFees
-	//}
-	//
-	//return trx_fee, nil
+	var piece int64 = 1
 
-	return wm.Config.MinFees, nil
+	//UTXO如果大于设定限制，则分拆成多笔交易单发送
+	if inputs > int64(wm.Config.MaxTxInputs) {
+		piece = int64(math.Ceil(float64(inputs) / float64(wm.Config.MaxTxInputs)))
+	}
+
+	//计算公式如下：180 * 输入数额 + 34 * 输出数额 + 10
+	trx_bytes := decimal.New(inputs*180+outputs*34+piece*10, 0)
+	trx_fee := trx_bytes.Div(decimal.New(1000, 0)).Mul(feeRate)
+	trx_fee = trx_fee.Round(wm.Decimal())
+	//wm.Log.Debugf("trx_fee: %s", trx_fee.String())
+	//wm.Log.Debugf("MinFees: %s", wm.Config.MinFees.String())
+	//是否低于最小手续费
+	if trx_fee.LessThan(wm.Config.MinFees) {
+		trx_fee = wm.Config.MinFees
+	}
+
+	return trx_fee, nil
+
+	//return wm.Config.MinFees, nil
 }
 
 //EstimateFeeRate 预估的没KB手续费率

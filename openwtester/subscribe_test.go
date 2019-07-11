@@ -65,12 +65,23 @@ func TestSubscribeAddress(t *testing.T) {
 	)
 
 	//GetSourceKeyByAddress 获取地址对应的数据源标识
-	scanAddressFunc := func(address string) (string, bool) {
-		key, ok := addrs[address]
-		if !ok {
-			return "", false
+	scanTargetFunc := func(target openwallet.ScanTarget) (string, bool) {
+		//如果余额模型是地址，查找地址表
+		if target.BalanceModelType == openwallet.BalanceModelTypeAddress {
+			key, ok := addrs[target.Address]
+			if !ok {
+				return "", false
+			}
+			return key, true
+		} else {
+			//如果余额模型是账户，用别名操作账户的别名
+			key, ok := addrs[target.Alias]
+			if !ok {
+				return "", false
+			}
+			return key, true
 		}
-		return key, true
+
 	}
 
 	assetsMgr, err := openw.GetAssetsAdapter(symbol)
@@ -95,14 +106,14 @@ func TestSubscribeAddress(t *testing.T) {
 
 	//log.Debug("already got scanner:", assetsMgr)
 	scanner := assetsMgr.GetBlockScanner()
-	scanner.SetRescanBlockHeight(48884)
+	//scanner.SetRescanBlockHeight(48884)
 
 	if scanner == nil {
 		log.Error(symbol, "is not support block scan")
 		return
 	}
 
-	scanner.SetBlockScanAddressFunc(scanAddressFunc)
+	scanner.SetBlockScanTargetFunc(scanTargetFunc)
 
 	sub := subscriberSingle{}
 	scanner.AddObserver(&sub)
@@ -110,4 +121,85 @@ func TestSubscribeAddress(t *testing.T) {
 	scanner.Run()
 
 	<-endRunning
+}
+
+func TestExtractTransactionData(t *testing.T) {
+
+	var (
+		symbol     = "CXC"
+		addrs      = map[string]string{
+			"1FKGvwjy8FYHjMNupydJaBdyFNceoQ7fxL": "sender",
+			"16AFYCFtEJe9KDrGUSPkofa3sDmga7n6pR": "receiver",
+		}
+	)
+
+	//GetSourceKeyByAddress 获取地址对应的数据源标识
+	scanTargetFunc := func(target openwallet.ScanTarget) (string, bool) {
+		//如果余额模型是地址，查找地址表
+		if target.BalanceModelType == openwallet.BalanceModelTypeAddress {
+			key, ok := addrs[target.Address]
+			if !ok {
+				return "", false
+			}
+			return key, true
+		} else {
+			//如果余额模型是账户，用别名操作账户的别名
+			key, ok := addrs[target.Alias]
+			if !ok {
+				return "", false
+			}
+			return key, true
+		}
+
+	}
+
+	assetsMgr, err := openw.GetAssetsAdapter(symbol)
+	if err != nil {
+		log.Error(symbol, "is not support")
+		return
+	}
+
+	//读取配置
+	absFile := filepath.Join(configFilePath, symbol+".ini")
+
+	c, err := config.NewConfig("ini", absFile)
+	if err != nil {
+		return
+	}
+	assetsMgr.LoadAssetsConfig(c)
+
+	assetsLogger := assetsMgr.GetAssetsLogger()
+	if assetsLogger != nil {
+		assetsLogger.SetLogFuncCall(true)
+	}
+
+	//log.Debug("already got scanner:", assetsMgr)
+	scanner := assetsMgr.GetBlockScanner()
+	//scanner.SetRescanBlockHeight(48884)
+
+	if scanner == nil {
+		log.Error(symbol, "is not support block scan")
+		return
+	}
+
+	r, err := scanner.ExtractTransactionData("b0d3c95d72d733442ea6538b5f8c6ae0880ba8f30c3d99b49dc2bad8daf699ef", scanTargetFunc)
+	if err != nil {
+		return
+	}
+
+	for _, d := range r {
+
+		for _, data := range d {
+			for i, input := range data.TxInputs {
+				log.Std.Notice("data.TxInputs[%d]: %+v", i, input)
+			}
+
+			for i, output := range data.TxOutputs {
+				log.Std.Notice("data.TxOutputs[%d]: %+v", i, output)
+			}
+
+			log.Std.Notice("data.Transaction: %+v", data.Transaction)
+		}
+	}
+
 }
