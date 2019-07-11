@@ -174,14 +174,14 @@ func (decoder *TransactionDecoder) CreateBTCRawTransaction(wrapper openwallet.Wa
 		searchAddrs = append(searchAddrs, address.Address)
 	}
 	//decoder.wm.Log.Debug(searchAddrs)
-	//查找账户的utxo
-	unspents, err := decoder.wm.ListUnspent(0, searchAddrs...)
+	//查找账户的utxo, 项目方说要6个确认才可用
+	unspents, err := decoder.wm.ListUnspent(6, searchAddrs...)
 	if err != nil {
 		return err
 	}
 
 	if len(unspents) == 0 {
-		return openwallet.Errorf(openwallet.ErrInsufficientBalanceOfAccount, "[%s] balance is not enough", accountID)
+		return openwallet.Errorf(openwallet.ErrInsufficientBalanceOfAccount, "[%s] balance is not enough(must over 6 confirmations)", accountID)
 	}
 
 	if len(rawTx.To) == 0 {
@@ -566,7 +566,7 @@ func (decoder *TransactionDecoder) CreateBTCSummaryRawTransaction(wrapper openwa
 
 	for i, addr := range sumAddresses {
 
-		unspents, err := decoder.wm.ListUnspent(sumRawTx.Confirms, addr)
+		unspents, err := decoder.wm.ListUnspent(6, addr)
 		if err != nil {
 			return nil, err
 		}
@@ -1033,7 +1033,7 @@ func (decoder *TransactionDecoder) getAssetsAccountUnspents(wrapper openwallet.W
 	}
 	//decoder.wm.Log.Debug(searchAddrs)
 	//查找账户的utxo
-	unspents, err := decoder.wm.ListUnspent(0, searchAddrs...)
+	unspents, err := decoder.wm.ListUnspent(6, searchAddrs...)
 	if err != nil {
 		return nil, openwallet.Errorf(openwallet.ErrCallFullNodeAPIFailed, err.Error())
 	}

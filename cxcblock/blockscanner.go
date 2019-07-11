@@ -1306,7 +1306,7 @@ func (wm *WalletManager) getTxIDsInMemPoolByCore() ([]string, error) {
 		txids = make([]string, 0)
 	)
 
-	result, err := wm.WalletClient.Call("getrawmempool", nil)
+	result, err := wm.WalletClient.Call("showmem", nil)
 	if err != nil {
 		return nil, err
 	}
