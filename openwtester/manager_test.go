@@ -1,6 +1,7 @@
 package openwtester
 
 import (
+	"fmt"
 	"github.com/blocktree/openwallet/log"
 	"github.com/blocktree/openwallet/openw"
 	"github.com/blocktree/openwallet/openwallet"
@@ -135,8 +136,8 @@ func TestWalletManager_GetAddressList(t *testing.T) {
 		log.Error("unexpected error:", err)
 		return
 	}
-	for i, w := range list {
-		log.Info("address[", i, "] :", w.Address)
+	for _, w := range list {
+		fmt.Printf("%s\n", w.Address)
 	}
 	log.Info("address count:", len(list))
 

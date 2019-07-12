@@ -119,41 +119,53 @@ func testSubmitTransactionStep(tm *openw.WalletManager, rawTx *openwallet.RawTra
 
 func TestTransfer(t *testing.T) {
 
-	//1A2qY3Sc7id9bBAVeWWdvJoTMDFnCU9UKB
-	//1CJCwBjRRWHgLwkhxSvVXo1U7NbPHvsh1B
-	//1DdtdoAQcL21Kwa6xKGVmWFVuxi3j7Jjyo
-	//1FCCvqAVYLHn7Nv6mAAToA47saeNAry3Na
-	//1HZtoNZvdMvWL5tZ3tPKm48ghSTNVf2f4o
-	//1MdED1qX8kKPkPp95XuUYrUUwarDauJCfw
+	addrs := []string{
+		"1A2qY3Sc7id9bBAVeWWdvJoTMDFnCU9UKB",
+		"1CJCwBjRRWHgLwkhxSvVXo1U7NbPHvsh1B",
+		"1DdtdoAQcL21Kwa6xKGVmWFVuxi3j7Jjyo",
+		"1FC3FLcuZsazp4XRTFMMsmwf9UQLExNV5P",
+		"1FCCvqAVYLHn7Nv6mAAToA47saeNAry3Na",
+		"1Ghv1mPw5AceKXzEmK5UDC4gMyERSWzHx4",
+		"1HZtoNZvdMvWL5tZ3tPKm48ghSTNVf2f4o",
+		"1JNDnmcrDAMo3FDwDAnXUs5NzDkEQCGbKX",
+		"1MdED1qX8kKPkPp95XuUYrUUwarDauJCfw",
+		"1MwAjoDeJx55PqiKfat17xzip8pcEHk2Xj",
+		"1PuQEh8QnSRa16MVVCGJ8eQe6FyboHRfn6",
+	}
+
 
 	tm := testInitWalletManager()
 	walletID := "WCJCXnevTTBCPxfc2zS7kxCPLsH9S2Aqcf"
 	accountID := "7XB8PtHt41sh7rEVdRChiPC8rhDqY2LpuqXfUt9xoqw4"
-	to := "1HZtoNZvdMvWL5tZ3tPKm48ghSTNVf2f4o"
+	//to := "1DdtdoAQcL21Kwa6xKGVmWFVuxi3j7Jjyo"
 
 	testGetAssetsAccountBalance(tm, walletID, accountID)
 
-	rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "0.005", "", nil)
-	if err != nil {
-		return
+	for _, to := range addrs {
+
+		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "0.003", "", nil)
+		if err != nil {
+			return
+		}
+
+		_, err = testSignTransactionStep(tm, rawTx)
+		if err != nil {
+			return
+		}
+
+		_, err = testVerifyTransactionStep(tm, rawTx)
+		if err != nil {
+			return
+		}
+
+		_, err = testSubmitTransactionStep(tm, rawTx)
+		if err != nil {
+			return
+		}
+
 	}
 
-	log.Std.Info("rawTx: %+v", rawTx)
 
-	_, err = testSignTransactionStep(tm, rawTx)
-	if err != nil {
-		return
-	}
-
-	_, err = testVerifyTransactionStep(tm, rawTx)
-	if err != nil {
-		return
-	}
-
-	_, err = testSubmitTransactionStep(tm, rawTx)
-	if err != nil {
-		return
-	}
 
 }
 
