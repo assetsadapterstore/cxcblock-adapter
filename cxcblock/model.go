@@ -404,3 +404,11 @@ func DecodeScript(script string) ([]byte, error) {
 	}
 	return scriptBuilder.Script()
 }
+
+type Address struct {
+	Address      string `json:"address"`
+	Ismine       bool   `json:"ismine"`
+	Iswatchonly  bool   `json:"iswatchonly"`
+	Isscript     bool   `json:"isscript"`
+	Synchronized bool   `json:"synchronized"`
+}

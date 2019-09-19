@@ -16,10 +16,15 @@
 package cxcblock
 
 import (
+	"bufio"
+	"fmt"
 	"github.com/astaxie/beego/config"
 	"github.com/blocktree/openwallet/log"
 	"github.com/shopspring/decimal"
+	"io"
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -55,7 +60,7 @@ func TestWalletManager(t *testing.T) {
 }
 
 func TestListUnspent(t *testing.T) {
-	utxos, err := tw.ListUnspent(0, "16AFYCFtEJe9KDrGUSPkofa3sDmga7n6pR")
+	utxos, err := tw.ListUnspent(0, "1NjsdJqn4KNa2d3a9BuLX7jD4JJxvhshNy")
 	if err != nil {
 		t.Errorf("ListUnspent failed unexpected error: %v\n", err)
 		return
@@ -63,6 +68,22 @@ func TestListUnspent(t *testing.T) {
 	totalBalance := decimal.Zero
 	for _, u := range utxos {
 		t.Logf("ListUnspent %s: %s = %s\n", u.Address, u.AccountID, u.Amount)
+		amount, _ := decimal.NewFromString(u.Amount)
+		totalBalance = totalBalance.Add(amount)
+	}
+
+	t.Logf("totalBalance: %s \n", totalBalance.String())
+}
+
+func TestGetListUnspentByCore(t *testing.T) {
+	utxos, err := tw.getListUnspentByCore(0)
+	if err != nil {
+		t.Errorf("ListUnspent failed unexpected error: %v\n", err)
+		return
+	}
+	totalBalance := decimal.Zero
+	for i, u := range utxos {
+		t.Logf("ListUnspent[%d] %s: %s = %s\n", i, u.Address, u.AccountID, u.Amount)
 		amount, _ := decimal.NewFromString(u.Amount)
 		totalBalance = totalBalance.Add(amount)
 	}
@@ -80,7 +101,7 @@ func TestEstimateFee(t *testing.T) {
 }
 
 func TestWalletManager_ImportAddress(t *testing.T) {
-	addr := "134id8BvKerWe4MGjn2oRKySX4ipw8ZayP"
+	addr := "1NjsdJqn4KNa2d3a9BuLX7jD4JJxvhshNy"
 	err := tw.ImportAddress(addr, "")
 	if err != nil {
 		t.Errorf("RestoreWallet failed unexpected error: %v\n", err)
@@ -109,3 +130,62 @@ func TestWalletManager_GetTxOut(t *testing.T) {
 	}
 	t.Logf("vout: %+v \n", vout)
 }
+
+func TestWalletManager_Showaddrs(t *testing.T) {
+	addrs, err := tw.Showaddrs()
+	if err != nil {
+		t.Errorf("Showaddrs failed unexpected error: %v\n", err)
+		return
+	}
+	for i, a := range addrs {
+		fmt.Printf("[%d] %+v\n", i, a)
+	}
+}
+
+func TestWalletManager_Showchain(t *testing.T) {
+	tw.Showchain()
+}
+
+func TestWalletManager_Addnewaddr(t *testing.T) {
+	tw.Addnewaddr()
+}
+
+func TestBatchImport(t *testing.T) {
+	addrFile := filepath.Join("data", "cxc_addr2.txt")
+	addrs, err := readLine(addrFile)
+	if err != nil {
+		t.Errorf("readLine failed unexpected error: %v\n", err)
+		return
+	}
+	for i, a := range addrs {
+		fmt.Printf("[%d] %s\n", i, a)
+
+		err := tw.ImportAddress(a, "")
+		if err != nil {
+			t.Errorf("ImportAddress failed [%d] unexpected error: %v\n", i, err)
+			return
+		}
+	}
+}
+
+func readLine(fileName string) ([]string,error){
+	f, err := os.Open(fileName)
+	if err != nil {
+		return nil,err
+	}
+	buf := bufio.NewReader(f)
+	var result []string
+	for {
+		line, err := buf.ReadString('\n')
+		line = strings.TrimSpace(line)
+		if err != nil {
+			if err == io.EOF {   //读取结束，会报EOF
+				return result,nil
+			}
+			return nil,err
+		}
+		result = append(result,line)
+	}
+	return result,nil
+}
+

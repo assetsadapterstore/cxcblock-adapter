@@ -16,6 +16,7 @@
 package cxcblock
 
 import (
+	"encoding/json"
 	"github.com/blocktree/openwallet/hdkeystore"
 	"github.com/blocktree/openwallet/log"
 	"github.com/blocktree/openwallet/openwallet"
@@ -238,4 +239,44 @@ func (wm *WalletManager) estimateFeeRateByCore() (decimal.Decimal, error) {
 	}
 
 	return feeRate, nil
+}
+
+func (wm *WalletManager) Showaddrs() ([]*Address, error) {
+
+	request := []interface{}{
+		"*",
+	}
+
+	result, err := wm.WalletClient.Call("showaddrs", request)
+	if err != nil {
+		return nil, err
+	}
+
+	var addrs []*Address
+	err = json.Unmarshal([]byte(result.Raw), &addrs)
+	if err != nil {
+		return nil, err
+	}
+
+	return addrs, nil
+}
+
+func (wm *WalletManager) Showchain() (*gjson.Result, error) {
+
+	result, err := wm.WalletClient.Call("showchain", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (wm *WalletManager) Addnewaddr() (*gjson.Result, error) {
+
+	result, err := wm.WalletClient.Call("addnewaddr", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
