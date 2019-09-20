@@ -60,7 +60,7 @@ func TestWalletManager(t *testing.T) {
 }
 
 func TestListUnspent(t *testing.T) {
-	utxos, err := tw.ListUnspent(0, "1NjsdJqn4KNa2d3a9BuLX7jD4JJxvhshNy")
+	utxos, err := tw.ListUnspent(0, "1JoTNMcY7CxzNBsTmYLDy7tjNEqrLCmGGk")
 	if err != nil {
 		t.Errorf("ListUnspent failed unexpected error: %v\n", err)
 		return
@@ -101,7 +101,7 @@ func TestEstimateFee(t *testing.T) {
 }
 
 func TestWalletManager_ImportAddress(t *testing.T) {
-	addr := "1NjsdJqn4KNa2d3a9BuLX7jD4JJxvhshNy"
+	addr := "1MasZiznUuxPNYCNGmSoesp1TqoNJCi4tC"
 	err := tw.ImportAddress(addr, "")
 	if err != nil {
 		t.Errorf("RestoreWallet failed unexpected error: %v\n", err)

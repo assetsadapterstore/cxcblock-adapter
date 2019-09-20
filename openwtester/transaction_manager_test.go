@@ -106,8 +106,8 @@ func TestWalletManager_GetTransactionByWxID(t *testing.T) {
 func TestWalletManager_GetAssetsAccountBalance(t *testing.T) {
 	tm := testInitWalletManager()
 	walletID := "WCJCXnevTTBCPxfc2zS7kxCPLsH9S2Aqcf"
-	accountID := "7XB8PtHt41sh7rEVdRChiPC8rhDqY2LpuqXfUt9xoqw4"
-
+	//accountID := "7XB8PtHt41sh7rEVdRChiPC8rhDqY2LpuqXfUt9xoqw4"
+	accountID := "E9YzesiKWYYcddLyM87xjEMjRLPW5VJ6LzeMpSLsGRrq"
 	balance, err := tm.GetAssetsAccountBalance(testApp, walletID, accountID)
 	if err != nil {
 		log.Error("GetAssetsAccountBalance failed, unexpected error:", err)
@@ -118,15 +118,15 @@ func TestWalletManager_GetAssetsAccountBalance(t *testing.T) {
 
 func TestWalletManager_GetAssetsAccountTokenBalance(t *testing.T) {
 	tm := testInitWalletManager()
-	walletID := "WMTUzB3LWaSKNKEQw9Sn73FjkEoYGHEp4B"
-	accountID := "59t47qyjHUMZ6PGAdjkJopE9ffAPUkdUhSinJqcWRYZ1"
+	walletID := "WCJCXnevTTBCPxfc2zS7kxCPLsH9S2Aqcf"
+	accountID := "7XB8PtHt41sh7rEVdRChiPC8rhDqY2LpuqXfUt9xoqw4"
 
 	contract := openwallet.SmartContract{
-		Address:  "0x4092678e4E78230F46A1534C0fbc8fA39780892B",
-		Symbol:   "ETH",
-		Name:     "OCoin",
-		Token:    "OCN",
-		Decimals: 18,
+		Address:  "372121-1930-55680",
+		Symbol:   "TEP",
+		Name:     "TEP",
+		Token:    "TEP",
+		Decimals: 6,
 	}
 
 	balance, err := tm.GetAssetsAccountTokenBalance(testApp, walletID, accountID, contract)

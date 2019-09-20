@@ -120,17 +120,12 @@ func testSubmitTransactionStep(tm *openw.WalletManager, rawTx *openwallet.RawTra
 func TestTransfer(t *testing.T) {
 
 	addrs := []string{
-		"1A2qY3Sc7id9bBAVeWWdvJoTMDFnCU9UKB",
-		"1CJCwBjRRWHgLwkhxSvVXo1U7NbPHvsh1B",
-		"1DdtdoAQcL21Kwa6xKGVmWFVuxi3j7Jjyo",
-		"1FC3FLcuZsazp4XRTFMMsmwf9UQLExNV5P",
-		"1FCCvqAVYLHn7Nv6mAAToA47saeNAry3Na",
-		"1Ghv1mPw5AceKXzEmK5UDC4gMyERSWzHx4",
-		"1HZtoNZvdMvWL5tZ3tPKm48ghSTNVf2f4o",
-		"1JNDnmcrDAMo3FDwDAnXUs5NzDkEQCGbKX",
-		"1MdED1qX8kKPkPp95XuUYrUUwarDauJCfw",
-		"1MwAjoDeJx55PqiKfat17xzip8pcEHk2Xj",
-		"1PuQEh8QnSRa16MVVCGJ8eQe6FyboHRfn6",
+		"122CsmrZzGBecM5R456yCb7kMRo1aFUBUT",
+		"15dsWRHfrzkssRXvNtQQ28Y6sQVvfNSJhG",
+		"16ZpDQ45bo4kavBzsaD9GHjjnRuwJPQHuf",
+		"1D65CTVmVv4pmpAy65P8ZQKwWuqQBxHB4V",
+		"1KLSHGtEG5xk18T2Vzegkzu3qa5svPPLKb",
+		"1L1ayirgcx9o68XzSX4WcF9ZsPGLmUvRyR",
 	}
 
 
@@ -172,7 +167,7 @@ func TestTransfer(t *testing.T) {
 func TestSummary(t *testing.T) {
 	tm := testInitWalletManager()
 	walletID := "WCJCXnevTTBCPxfc2zS7kxCPLsH9S2Aqcf"
-	accountID := "Hpa9RLyyGitFRiDvjbwuopLPTfFgDwbuYDQMtMHwXAMM"
+	accountID := "E9YzesiKWYYcddLyM87xjEMjRLPW5VJ6LzeMpSLsGRrq"
 	summaryAddress := "1MasZiznUuxPNYCNGmSoesp1TqoNJCi4tC"
 
 	//accountID := "2XWy8sjUxyn6zXqz3oeN9GZscGQ1pJ4dtTmmaFhdwiUa"

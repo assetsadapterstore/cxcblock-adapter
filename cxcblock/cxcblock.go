@@ -95,6 +95,6 @@ func (wm *WalletManager) GetAssetsLogger() *log.OWLogger {
 }
 
 //GetSmartContractDecoder 获取智能合约解析器
-//func (wm *WalletManager) GetSmartContractDecoder() openwallet.SmartContractDecoder {
-//	return wm.ContractDecoder
-//}
+func (wm *WalletManager) GetSmartContractDecoder() openwallet.SmartContractDecoder {
+	return wm.ContractDecoder
+}

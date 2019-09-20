@@ -28,14 +28,14 @@ import (
 type WalletManager struct {
 	openwallet.AssetsAdapterBase
 
-	Storage      *hdkeystore.HDKeystore        //秘钥存取
-	WalletClient *Client                       // 节点客户端
-	Config       *WalletConfig                 //钱包管理配置
-	Decoder      openwallet.AddressDecoder     //地址编码器
-	TxDecoder    openwallet.TransactionDecoder //交易单编码器
-	Log          *log.OWLogger                 //日志工具
-	Blockscanner *CXCBlockScanner              //区块扫描器
-	//ContractDecoder *ContractDecoder              //智能合约解析器
+	Storage         *hdkeystore.HDKeystore        //秘钥存取
+	WalletClient    *Client                       // 节点客户端
+	Config          *WalletConfig                 //钱包管理配置
+	Decoder         openwallet.AddressDecoder     //地址编码器
+	TxDecoder       openwallet.TransactionDecoder //交易单编码器
+	Log             *log.OWLogger                 //日志工具
+	Blockscanner    *CXCBlockScanner              //区块扫描器
+	ContractDecoder *ContractDecoder              //智能合约解析器
 }
 
 func NewWalletManager() *WalletManager {
@@ -45,6 +45,7 @@ func NewWalletManager() *WalletManager {
 	wm.Log = log.NewOWLogger(wm.Symbol())
 	wm.Blockscanner = NewCXCBlockScanner(&wm)
 	wm.TxDecoder = NewTransactionDecoder(&wm)
+	wm.ContractDecoder = NewContractDecoder(&wm)
 	return &wm
 }
 

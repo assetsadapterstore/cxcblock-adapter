@@ -22,6 +22,7 @@ import (
 	"github.com/blocktree/openwallet/crypto"
 	"github.com/blocktree/openwallet/openwallet"
 	"github.com/btcsuite/btcd/txscript"
+	"github.com/shopspring/decimal"
 	"github.com/tidwall/gjson"
 	"strings"
 )
@@ -411,4 +412,35 @@ type Address struct {
 	Iswatchonly  bool   `json:"iswatchonly"`
 	Isscript     bool   `json:"isscript"`
 	Synchronized bool   `json:"synchronized"`
+}
+
+type Assets struct {
+	Name     string          `json:"name"`
+	Selltxid string          `json:"selltxid"`
+	Assetref string          `json:"assetref"`
+	Multiple uint64          `json:"multiple"`
+	Unit     decimal.Decimal `json:"units"`
+	Decimals int32
+}
+
+func NewAssets(json gjson.Result) *Assets {
+	obj := &Assets{}
+	//解析json
+	obj.Name = gjson.Get(json.Raw, "name").String()
+	obj.Selltxid = gjson.Get(json.Raw, "selltxid").String()
+	obj.Assetref = gjson.Get(json.Raw, "assetref").String()
+	obj.Multiple = gjson.Get(json.Raw, "multiple").Uint()
+	unit := gjson.Get(json.Raw, "units").String()
+	obj.Unit, _ = decimal.NewFromString(unit)
+
+	parts := strings.Split(unit, ".")
+	if len(parts) == 1 {
+		obj.Decimals = 0
+	} else if len(parts) == 2 {
+		decimalPart := strings.TrimRight(parts[1], "0")
+		obj.Decimals = int32(len(decimalPart))
+	} else {
+		obj.Decimals = 0
+	}
+	return obj
 }
