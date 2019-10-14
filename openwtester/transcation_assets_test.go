@@ -120,12 +120,14 @@ func testSubmitTransactionStep(tm *openw.WalletManager, rawTx *openwallet.RawTra
 func TestTransfer(t *testing.T) {
 
 	addrs := []string{
-		"122CsmrZzGBecM5R456yCb7kMRo1aFUBUT",
-		"15dsWRHfrzkssRXvNtQQ28Y6sQVvfNSJhG",
-		"16ZpDQ45bo4kavBzsaD9GHjjnRuwJPQHuf",
-		"1D65CTVmVv4pmpAy65P8ZQKwWuqQBxHB4V",
-		"1KLSHGtEG5xk18T2Vzegkzu3qa5svPPLKb",
-		"1L1ayirgcx9o68XzSX4WcF9ZsPGLmUvRyR",
+		//"122CsmrZzGBecM5R456yCb7kMRo1aFUBUT",
+		//"15dsWRHfrzkssRXvNtQQ28Y6sQVvfNSJhG",
+		//"16ZpDQ45bo4kavBzsaD9GHjjnRuwJPQHuf",
+		//"1D65CTVmVv4pmpAy65P8ZQKwWuqQBxHB4V",
+		//"1KLSHGtEG5xk18T2Vzegkzu3qa5svPPLKb",
+		//"1L1ayirgcx9o68XzSX4WcF9ZsPGLmUvRyR",
+
+		"1EfCaGFXG6mfxAcqcxmGvAV3kfp9mqwyyG",
 	}
 
 
@@ -138,7 +140,7 @@ func TestTransfer(t *testing.T) {
 
 	for _, to := range addrs {
 
-		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "0.003", "", nil)
+		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "3", "", nil)
 		if err != nil {
 			return
 		}
