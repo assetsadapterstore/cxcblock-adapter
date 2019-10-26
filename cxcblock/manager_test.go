@@ -60,7 +60,9 @@ func TestWalletManager(t *testing.T) {
 }
 
 func TestListUnspent(t *testing.T) {
-	utxos, err := tw.ListUnspent(0, "1PVPUTn7KJ61oTrPa3A5nqF1Gi8Lokeiv6")
+	//address := "1D65CTVmVv4pmpAy65P8ZQKwWuqQBxHB4V"
+	address := "1MasZiznUuxPNYCNGmSoesp1TqoNJCi4tC"
+	utxos, err := tw.ListUnspent(0, address)
 	if err != nil {
 		t.Errorf("ListUnspent failed unexpected error: %v\n", err)
 		return

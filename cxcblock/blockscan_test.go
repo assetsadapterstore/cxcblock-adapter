@@ -85,7 +85,7 @@ func TestGetBlockByHeight(t *testing.T) {
 }
 
 func TestGetTransaction(t *testing.T) {
-	raw, err := tw.GetTransaction("7d08cc7ead309f5935bd0b9f3677bb00e33c70d4526e33bd5ba6e993d0debbd6")
+	raw, err := tw.GetTransaction("44aafc7367988154a2fb96355182c6df634e7b67d11a563ca2a12ceea94bdc01")
 	if err != nil {
 		t.Errorf("GetTransaction failed unexpected error: %v\n", err)
 		return

@@ -45,7 +45,7 @@ func TestContractDecoder_GetTokenBalanceByAddress(t *testing.T) {
 	addr := "1KrKAZyR34ZvK5HRYUHFb6N1WZrWhJd9E5"
 	contract := openwallet.SmartContract{
 		Address:  "372121-1930-55680",
-		Symbol:   "TEP",
+		Symbol:   "CXC",
 		Name:     "TEP",
 		Token:    "TEP",
 		Decimals: 6,

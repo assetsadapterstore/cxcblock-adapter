@@ -106,8 +106,8 @@ func TestWalletManager_GetTransactionByWxID(t *testing.T) {
 func TestWalletManager_GetAssetsAccountBalance(t *testing.T) {
 	tm := testInitWalletManager()
 	walletID := "WCJCXnevTTBCPxfc2zS7kxCPLsH9S2Aqcf"
-	//accountID := "7XB8PtHt41sh7rEVdRChiPC8rhDqY2LpuqXfUt9xoqw4"
-	accountID := "E9YzesiKWYYcddLyM87xjEMjRLPW5VJ6LzeMpSLsGRrq"
+	accountID := "7XB8PtHt41sh7rEVdRChiPC8rhDqY2LpuqXfUt9xoqw4"
+	//accountID := "E9YzesiKWYYcddLyM87xjEMjRLPW5VJ6LzeMpSLsGRrq"
 	balance, err := tm.GetAssetsAccountBalance(testApp, walletID, accountID)
 	if err != nil {
 		log.Error("GetAssetsAccountBalance failed, unexpected error:", err)
@@ -122,10 +122,10 @@ func TestWalletManager_GetAssetsAccountTokenBalance(t *testing.T) {
 	accountID := "7XB8PtHt41sh7rEVdRChiPC8rhDqY2LpuqXfUt9xoqw4"
 
 	contract := openwallet.SmartContract{
-		Address:  "372121-1930-55680",
-		Symbol:   "TEP",
-		Name:     "TEP",
-		Token:    "TEP",
+		Address:  "583244-1358-57077",
+		Symbol:   "CXC",
+		Name:     "CPC",
+		Token:    "CPC",
 		Decimals: 6,
 	}
 

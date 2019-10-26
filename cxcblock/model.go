@@ -82,6 +82,7 @@ type Unspent struct {
 	Spendable     bool   `json:"spendable"`
 	Solvable      bool   `json:"solvable"`
 	HDAddress     openwallet.Address
+	Assets        []*AssetsUnspent `json:"assets"`
 }
 
 func NewUnspent(json *gjson.Result) *Unspent {
@@ -94,11 +95,31 @@ func NewUnspent(json *gjson.Result) *Unspent {
 	obj.ScriptPubKey = gjson.Get(json.Raw, "scriptPubKey").String()
 	obj.Amount = gjson.Get(json.Raw, "amount").String()
 	obj.Confirmations = gjson.Get(json.Raw, "confirmations").Uint()
-	//obj.Spendable = gjson.Get(json.Raw, "spendable").Bool()
-	obj.Spendable = true
-	obj.Solvable = gjson.Get(json.Raw, "solvable").Bool()
+	obj.Spendable = gjson.Get(json.Raw, "cansend").Bool()
+	//obj.Spendable = true
+	//obj.Solvable = gjson.Get(json.Raw, "solvable").Bool()
+	obj.Assets = make([]*AssetsUnspent, 0)
+	assets := gjson.Get(json.Raw, "assets")
+	if assets.IsArray() {
+		for _, a := range assets.Array() {
+			au := &AssetsUnspent{
+				Name:     a.Get("name").String(),
+				Assetref: a.Get("assetref").String(),
+				Qty:      a.Get("qty").String(),
+			}
+			obj.Assets = append(obj.Assets, au)
+		}
+	}
 
 	return obj
+}
+
+type AssetsUnspent struct {
+	Name     string `json:"name"`
+	Assetref string `json:"assetref"`
+	Qty      string `json:"qty"`
+	Raw      string `json:"raw"`
+	Type     string `json:"type"`
 }
 
 type UnspentSort struct {
@@ -262,6 +283,8 @@ type Vin struct {
 	N        uint64
 	Addr     string
 	Value    string
+	Assets   []*AssetsUnspent
+	IsToken  bool
 }
 
 type Vout struct {
@@ -270,6 +293,8 @@ type Vout struct {
 	Value        string
 	ScriptPubKey string
 	Type         string
+	Assets       []*AssetsUnspent
+	IsToken      bool
 }
 
 func (wm *WalletManager) newTxByCore(json *gjson.Result) *Transaction {
@@ -376,6 +401,23 @@ func newTxVoutByCore(json *gjson.Result) *Vout {
 	}
 
 	obj.Type = gjson.Get(json.Raw, "scriptPubKey.type").String()
+
+
+	obj.Assets = make([]*AssetsUnspent, 0)
+	assets := gjson.Get(json.Raw, "assets")
+	if assets.IsArray() {
+		for _, a := range assets.Array() {
+			au := &AssetsUnspent{
+				Name:     a.Get("name").String(),
+				Assetref: a.Get("assetref").String(),
+				Qty:      a.Get("qty").String(),
+				Raw:      a.Get("raw").String(),
+				Type:     a.Get("type").String(),
+			}
+			obj.Assets = append(obj.Assets, au)
+			obj.IsToken = true
+		}
+	}
 
 	//if len(obj.Addr) == 0 {
 	//	scriptBytes, _ := hex.DecodeString(obj.ScriptPubKey)

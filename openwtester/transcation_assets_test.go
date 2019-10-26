@@ -63,10 +63,11 @@ func testCreateSummaryTransactionStep(
 	tm *openw.WalletManager,
 	walletID, accountID, summaryAddress, minTransfer, retainedBalance, feeRate string,
 	start, limit int,
-	contract *openwallet.SmartContract) ([]*openwallet.RawTransaction, error) {
+	contract *openwallet.SmartContract,
+	feeSupportAccount *openwallet.FeesSupportAccount) ([]*openwallet.RawTransactionWithError, error) {
 
-	rawTxArray, err := tm.CreateSummaryTransaction(testApp, walletID, accountID, summaryAddress, minTransfer,
-		retainedBalance, feeRate, start, limit, contract)
+	rawTxArray, err := tm.CreateSummaryRawTransactionWithError(testApp, walletID, accountID, summaryAddress, minTransfer,
+		retainedBalance, feeRate, start, limit, contract, feeSupportAccount)
 
 	if err != nil {
 		log.Error("CreateSummaryTransaction failed, unexpected error:", err)
@@ -127,7 +128,7 @@ func TestTransfer(t *testing.T) {
 		//"1KLSHGtEG5xk18T2Vzegkzu3qa5svPPLKb",
 		//"1L1ayirgcx9o68XzSX4WcF9ZsPGLmUvRyR",
 
-		"1EfCaGFXG6mfxAcqcxmGvAV3kfp9mqwyyG",
+		"1KLSHGtEG5xk18T2Vzegkzu3qa5svPPLKb",
 	}
 
 
@@ -140,7 +141,7 @@ func TestTransfer(t *testing.T) {
 
 	for _, to := range addrs {
 
-		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "3", "", nil)
+		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "1", "", nil)
 		if err != nil {
 			return
 		}
@@ -166,6 +167,61 @@ func TestTransfer(t *testing.T) {
 
 }
 
+
+func TestTransfer_Token(t *testing.T) {
+
+	addrs := []string{
+		"122CsmrZzGBecM5R456yCb7kMRo1aFUBUT",
+		"15dsWRHfrzkssRXvNtQQ28Y6sQVvfNSJhG",
+		"16ZpDQ45bo4kavBzsaD9GHjjnRuwJPQHuf",
+		"1D65CTVmVv4pmpAy65P8ZQKwWuqQBxHB4V",
+		"1KLSHGtEG5xk18T2Vzegkzu3qa5svPPLKb",
+		"1L1ayirgcx9o68XzSX4WcF9ZsPGLmUvRyR",
+	}
+
+
+	tm := testInitWalletManager()
+	walletID := "WCJCXnevTTBCPxfc2zS7kxCPLsH9S2Aqcf"
+	accountID := "7XB8PtHt41sh7rEVdRChiPC8rhDqY2LpuqXfUt9xoqw4"
+	//accountID := "E9YzesiKWYYcddLyM87xjEMjRLPW5VJ6LzeMpSLsGRrq"
+	//to := "1MasZiznUuxPNYCNGmSoesp1TqoNJCi4tC"
+
+	contract := openwallet.SmartContract{
+		Address:  "583244-1358-57077",
+		Symbol:   "CXC",
+		Name:     "CPC",
+		Token:    "CPC",
+		Decimals: 6,
+	}
+
+	testGetAssetsAccountBalance(tm, walletID, accountID)
+
+	testGetAssetsAccountTokenBalance(tm, walletID, accountID, contract)
+
+	for _, to := range addrs {
+		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "0.123", "", &contract)
+		if err != nil {
+			return
+		}
+
+		_, err = testSignTransactionStep(tm, rawTx)
+		if err != nil {
+			return
+		}
+
+		_, err = testVerifyTransactionStep(tm, rawTx)
+		if err != nil {
+			return
+		}
+
+		_, err = testSubmitTransactionStep(tm, rawTx)
+		if err != nil {
+			return
+		}
+	}
+}
+
+
 func TestSummary(t *testing.T) {
 	tm := testInitWalletManager()
 	walletID := "WCJCXnevTTBCPxfc2zS7kxCPLsH9S2Aqcf"
@@ -178,25 +234,98 @@ func TestSummary(t *testing.T) {
 
 	rawTxArray, err := testCreateSummaryTransactionStep(tm, walletID, accountID,
 		summaryAddress, "", "", "",
-		0, 100, nil)
+		0, 100, nil, nil)
 	if err != nil {
 		log.Errorf("CreateSummaryTransaction failed, unexpected error: %v", err)
 		return
 	}
 
 	//执行汇总交易
-	for _, rawTx := range rawTxArray {
-		_, err = testSignTransactionStep(tm, rawTx)
+	for _, rawTxWithErr := range rawTxArray {
+
+		if rawTxWithErr.Error != nil {
+			log.Error(rawTxWithErr.Error.Error())
+			continue
+		}
+
+		_, err = testSignTransactionStep(tm, rawTxWithErr.RawTx)
 		if err != nil {
 			return
 		}
 
-		_, err = testVerifyTransactionStep(tm, rawTx)
+		_, err = testVerifyTransactionStep(tm, rawTxWithErr.RawTx)
 		if err != nil {
 			return
 		}
 
-		_, err = testSubmitTransactionStep(tm, rawTx)
+		_, err = testSubmitTransactionStep(tm, rawTxWithErr.RawTx)
+		if err != nil {
+			return
+		}
+	}
+
+}
+
+
+
+func TestSummary_Token(t *testing.T) {
+
+	tm := testInitWalletManager()
+	walletID := "WCJCXnevTTBCPxfc2zS7kxCPLsH9S2Aqcf"
+	accountID := "E9YzesiKWYYcddLyM87xjEMjRLPW5VJ6LzeMpSLsGRrq"
+	summaryAddress := "1MasZiznUuxPNYCNGmSoesp1TqoNJCi4tC"
+
+	//walletID := "WAmTnvPKMWpJBqKk6cncFG3mTXz3iPmtzV"
+	//accountID := "86uUBCjk4SqEtMGDt92SQfn7YLhCZEcNQGjD5GhNNtSa"
+	//summaryAddress := "12kSR8J11Q1d8JiYwZn7DZsPoDoptME35y"
+
+	contract := openwallet.SmartContract{
+		Address:  "583244-1358-57077",
+		Symbol:   "CXC",
+		Name:     "CPC",
+		Token:    "CPC",
+		Decimals: 6,
+	}
+
+	//address: 1PGx3n1w1QR9UJ1t3U5dVDBfKEUYzcStuB
+	feesSupport := openwallet.FeesSupportAccount{
+		AccountID: "26vsBY44zmJXVAHT5w1byPJArvbhUGCvqbBArh9VwGXv",
+		//AccountID: "21Vn4NEmXT6DRy2EfdPTAJCS2kYTACTuconBer8AQ1cz",
+		//FixSupportAmount: "0.01",
+		FeesSupportScale: "1",
+	}
+
+	testGetAssetsAccountBalance(tm, walletID, accountID)
+
+	testGetAssetsAccountTokenBalance(tm, walletID, accountID, contract)
+
+	rawTxArray, err := testCreateSummaryTransactionStep(tm, walletID, accountID,
+		summaryAddress, "", "", "",
+		0, 20, &contract, &feesSupport)
+	if err != nil {
+		log.Errorf("CreateSummaryTransaction failed, unexpected error: %v", err)
+		return
+	}
+
+	//执行汇总交易
+	for _, rawTxWithErr := range rawTxArray {
+
+		if rawTxWithErr.Error != nil {
+			log.Error(rawTxWithErr.Error.Error())
+			continue
+		}
+
+		_, err = testSignTransactionStep(tm, rawTxWithErr.RawTx)
+		if err != nil {
+			return
+		}
+
+		_, err = testVerifyTransactionStep(tm, rawTxWithErr.RawTx)
+		if err != nil {
+			return
+		}
+
+		_, err = testSubmitTransactionStep(tm, rawTxWithErr.RawTx)
 		if err != nil {
 			return
 		}

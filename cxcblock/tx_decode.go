@@ -44,18 +44,18 @@ func (decoder *TransactionDecoder) CreateRawTransaction(wrapper openwallet.Walle
 	if rawTx.Coin.IsContract {
 		return decoder.CreateTokenRawTransaction(wrapper, rawTx)
 	} else {
-		return decoder.CreateBTCRawTransaction(wrapper, rawTx)
+		return decoder.CreateCXCRawTransaction(wrapper, rawTx)
 	}
 }
 
 //SignRawTransaction 签名交易单
 func (decoder *TransactionDecoder) SignRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
-	return decoder.SignBTCRawTransaction(wrapper, rawTx)
+	return decoder.SignCXCRawTransaction(wrapper, rawTx)
 }
 
 //VerifyRawTransaction 验证交易单，验证交易单并返回加入签名后的交易单
 func (decoder *TransactionDecoder) VerifyRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
-	return decoder.VerifyBTCRawTransaction(wrapper, rawTx)
+	return decoder.VerifyCXCRawTransaction(wrapper, rawTx)
 }
 
 //CreateSummaryRawTransaction 创建汇总交易，返回原始交易单数组
@@ -66,8 +66,8 @@ func (decoder *TransactionDecoder) CreateSummaryRawTransaction(wrapper openwalle
 		err               error
 	)
 	if sumRawTx.Coin.IsContract {
-		return nil, fmt.Errorf("contract transfer is not support")
-		//rawTxWithErrArray, err = decoder.CreateTokenSummaryRawTransaction(wrapper, sumRawTx)
+		//return nil, fmt.Errorf("contract transfer is not support")
+		rawTxWithErrArray, err = decoder.CreateTokenSummaryRawTransaction(wrapper, sumRawTx)
 	} else {
 		rawTxWithErrArray, err = decoder.CreateBTCSummaryRawTransaction(wrapper, sumRawTx)
 	}
@@ -134,7 +134,7 @@ func (decoder *TransactionDecoder) SubmitRawTransaction(wrapper openwallet.Walle
 ////////////////////////// BTC implement //////////////////////////
 
 //CreateRawTransaction 创建交易单
-func (decoder *TransactionDecoder) CreateBTCRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
+func (decoder *TransactionDecoder) CreateCXCRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
 
 	var (
 		usedUTXO     []*Unspent
@@ -294,7 +294,7 @@ func (decoder *TransactionDecoder) CreateBTCRawTransaction(wrapper openwallet.Wa
 		//outputAddrs[changeAddress] = changeAmount.StringFixed(decoder.wm.Decimal())
 	}
 
-	err = decoder.createBTCRawTransaction(wrapper, rawTx, usedUTXO, outputAddrs)
+	err = decoder.createCXCRawTransaction(wrapper, rawTx, usedUTXO, outputAddrs)
 	if err != nil {
 		return err
 	}
@@ -303,7 +303,7 @@ func (decoder *TransactionDecoder) CreateBTCRawTransaction(wrapper openwallet.Wa
 }
 
 //SignRawTransaction 签名交易单
-func (decoder *TransactionDecoder) SignBTCRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
+func (decoder *TransactionDecoder) SignCXCRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
 
 	if rawTx.Signatures == nil || len(rawTx.Signatures) == 0 {
 		//this.wm.Log.Std.Error("len of signatures error. ")
@@ -315,53 +315,58 @@ func (decoder *TransactionDecoder) SignBTCRawTransaction(wrapper openwallet.Wall
 		return err
 	}
 
-	keySignatures := rawTx.Signatures[rawTx.Account.AccountID]
-	if keySignatures != nil {
-		for _, keySignature := range keySignatures {
+	//keySignatures := rawTx.Signatures[rawTx.Account.AccountID]
+	for accountID, keySignatures := range rawTx.Signatures {
+		decoder.wm.Log.Debug("accountID:", accountID)
+		if keySignatures != nil {
+			for _, keySignature := range keySignatures {
 
-			childKey, err := key.DerivedKeyWithPath(keySignature.Address.HDPath, keySignature.EccType)
-			keyBytes, err := childKey.GetPrivateKeyBytes()
-			if err != nil {
-				return err
+				childKey, err := key.DerivedKeyWithPath(keySignature.Address.HDPath, keySignature.EccType)
+				keyBytes, err := childKey.GetPrivateKeyBytes()
+				if err != nil {
+					return err
+				}
+				//decoder.wm.Log.Debug("privateKey:", hex.EncodeToString(keyBytes))
+
+				//privateKeys = append(privateKeys, keyBytes)
+				txHash := cxcTransaction.TxHash{
+					Hash: keySignature.Message,
+					Normal: &cxcTransaction.NormalTx{
+						Address: keySignature.Address.Address,
+						SigType: cxcTransaction.SigHashAll,
+					},
+				}
+				//transHash = append(transHash, txHash)
+
+				decoder.wm.Log.Debug("hash:", txHash.GetTxHashHex())
+
+				//签名交易
+				/////////交易单哈希签名
+				sigPub, err := cxcTransaction.SignRawTransactionHash(txHash.GetTxHashHex(), keyBytes)
+				if err != nil {
+					return fmt.Errorf("transaction hash sign failed, unexpected error: %v", err)
+				} else {
+
+					//for i, s := range sigPub {
+					//	decoder.wm.Log.Info("第", i+1, "个签名结果")
+					//	decoder.wm.Log.Info()
+					//	decoder.wm.Log.Info("对应的公钥为")
+					//	decoder.wm.Log.Info(hex.EncodeToString(s.Pubkey))
+					//}
+
+					//txHash.Normal.SigPub = *sigPub
+				}
+
+				keySignature.Signature = hex.EncodeToString(sigPub.Signature)
 			}
-			decoder.wm.Log.Debug("privateKey:", hex.EncodeToString(keyBytes))
-
-			//privateKeys = append(privateKeys, keyBytes)
-			txHash := cxcTransaction.TxHash{
-				Hash: keySignature.Message,
-				Normal: &cxcTransaction.NormalTx{
-					Address: keySignature.Address.Address,
-					SigType: cxcTransaction.SigHashAll,
-				},
-			}
-			//transHash = append(transHash, txHash)
-
-			decoder.wm.Log.Debug("hash:", txHash.GetTxHashHex())
-
-			//签名交易
-			/////////交易单哈希签名
-			sigPub, err := cxcTransaction.SignRawTransactionHash(txHash.GetTxHashHex(), keyBytes)
-			if err != nil {
-				return fmt.Errorf("transaction hash sign failed, unexpected error: %v", err)
-			} else {
-
-				//for i, s := range sigPub {
-				//	decoder.wm.Log.Info("第", i+1, "个签名结果")
-				//	decoder.wm.Log.Info()
-				//	decoder.wm.Log.Info("对应的公钥为")
-				//	decoder.wm.Log.Info(hex.EncodeToString(s.Pubkey))
-				//}
-
-				//txHash.Normal.SigPub = *sigPub
-			}
-
-			keySignature.Signature = hex.EncodeToString(sigPub.Signature)
 		}
+
+		rawTx.Signatures[accountID] = keySignatures
 	}
 
 	decoder.wm.Log.Info("transaction hash sign success")
 
-	rawTx.Signatures[rawTx.Account.AccountID] = keySignatures
+	//rawTx.Signatures[rawTx.Account.AccountID] = keySignatures
 
 	//decoder.wm.Log.Info("rawTx.Signatures 1:", rawTx.Signatures)
 
@@ -369,7 +374,7 @@ func (decoder *TransactionDecoder) SignBTCRawTransaction(wrapper openwallet.Wall
 }
 
 //VerifyRawTransaction 验证交易单，验证交易单并返回加入签名后的交易单
-func (decoder *TransactionDecoder) VerifyBTCRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
+func (decoder *TransactionDecoder) VerifyCXCRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
 
 	//先加载是否有配置文件
 	//err := decoder.wm.LoadConfig()
@@ -389,8 +394,6 @@ func (decoder *TransactionDecoder) VerifyBTCRawTransaction(wrapper openwallet.Wa
 		//this.wm.Log.Std.Error("len of signatures error. ")
 		return fmt.Errorf("transaction signature is empty")
 	}
-
-	//TODO:待支持多重签名
 
 	for accountID, keySignatures := range rawTx.Signatures {
 		decoder.wm.Log.Debug("accountID Signatures:", accountID)
@@ -432,7 +435,7 @@ func (decoder *TransactionDecoder) VerifyBTCRawTransaction(wrapper openwallet.Wa
 		return errors.New("Invalid transaction data! ")
 	}
 
-	for _, vin := range trx.Vins {
+	for i, vin := range trx.Vins {
 
 		utxo, err := decoder.wm.GetTxOut(vin.GetTxID(), uint64(vin.GetVout()))
 		if err != nil {
@@ -444,6 +447,7 @@ func (decoder *TransactionDecoder) VerifyBTCRawTransaction(wrapper openwallet.Wa
 			SigType:    cxcTransaction.SigHashAll}
 		txUnlocks = append(txUnlocks, txUnlock)
 
+		transHash = resetTransHashFunc(transHash, utxo.Addr, i)
 	}
 
 	//decoder.wm.Log.Debug(emptyTrans)
@@ -640,7 +644,7 @@ func (decoder *TransactionDecoder) CreateBTCSummaryRawTransaction(wrapper openwa
 					}
 				}
 
-				createErr = decoder.createBTCRawTransaction(wrapper, rawTx, usedUTXO, outputAddrs)
+				createErr = decoder.createCXCRawTransaction(wrapper, rawTx, usedUTXO, outputAddrs)
 				rawTxWithErr := &openwallet.RawTransactionWithError{
 					RawTx: rawTx,
 					Error: openwallet.ConvertError(createErr),
@@ -662,8 +666,8 @@ func (decoder *TransactionDecoder) CreateBTCSummaryRawTransaction(wrapper openwa
 	return rawTxArray, nil
 }
 
-//createBTCRawTransaction 创建BTC原始交易单
-func (decoder *TransactionDecoder) createBTCRawTransaction(
+//createCXCRawTransaction 创建BTC原始交易单
+func (decoder *TransactionDecoder) createCXCRawTransaction(
 	wrapper openwallet.WalletDAI,
 	rawTx *openwallet.RawTransaction,
 	usedUTXO []*Unspent,
@@ -823,26 +827,20 @@ func (decoder *TransactionDecoder) createBTCRawTransaction(
 func (decoder *TransactionDecoder) CreateTokenRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
 
 	var (
-		//vins      = make([]tokenTransaction.Vin, 0)
-		//vouts     = make([]tokenTransaction.Vout, 0)
-		//txUnlocks = make([]tokenTransaction.TxUnlock, 0)
 		outputAddrs      = make(map[string]decimal.Decimal)
-		tokenOutputAddrs = make(map[string]string)
+		tokenOutputAddrs = make(map[string]decimal.Decimal)
 
 		toAddress string
 		toAmount  = decimal.Zero
 
-		availableUTXO     = make([]*Unspent, 0)
-		usedUTXO          = make([]*Unspent, 0)
-		totalTokenBalance = decimal.Zero
-		useTokenBalance   = decimal.Zero
-		useTokenAddress   = ""
-		missUtxoAddress   = ""
-		missToken         = make([]string, 0)
-		balance           = decimal.New(0, 0)
-		actualFees        = decimal.New(0, 0)
-		feesRate          = decimal.New(0, 0)
-		accountID         = rawTx.Account.AccountID
+		addressAllUTXO  = make([]*Unspent, 0)
+		availableUTXO   = make([]*Unspent, 0)
+		usedUTXO        = make([]*Unspent, 0)
+		useTokenBalance = decimal.Zero
+		balance         = decimal.New(0, 0)
+		actualFees      = decimal.New(0, 0)
+		feesRate        = decimal.New(0, 0)
+		accountID       = rawTx.Account.AccountID
 
 		//accountTotalSent = decimal.Zero
 		//txFrom           = make([]string, 0)
@@ -890,115 +888,37 @@ func (decoder *TransactionDecoder) CreateTokenRawTransaction(wrapper openwallet.
 		//}
 	}
 
-	/*
-
-		1. 遍历所有地址，获取token余额。
-			1）累计所有地址token余额。
-			2）没有token余额的地址，加入到没有token余额数组，其地址有utxo可用于手续费使用。
-			3）判断是否可用Token余额超过可发送数量，是则继续遍历。
-			4）记录最大的可余额，记录可用token余额地址。
-			5）查询有token余额的地址的utxo，没有utxo，记录缺少utxo地址，记录可用utxo。
-		2. 遍历所有地址后，全部Token余额不足， 返回错误Token余额不足。
-		3. 全部Token余额足够，可用余额不足，返回地址的最大Token余额不足。
-		4. 全部Token余额足够，可用余额足够，地址的没有utxo，返回错误。
-		5. 先排序可用utxo，再把没有token余额的地址所有utxo查出来，加入到可用utxo数组最后。
-		6. 最后可用的utxo不足，返回错误主链币不足。
-		7. 可用token和可用utxo足够，构建交易单。
-
-
-	*/
-
 	for _, address := range address {
 
 		//查找地址token余额
 		tokenBalance, checkErr := decoder.wm.GetAssetsBalance(propertyID, address.Address)
 		if checkErr != nil {
-			return checkErr
-		}
-
-		//合计总token余额
-		totalTokenBalance = totalTokenBalance.Add(tokenBalance)
-
-		//没有余额的地址可以作为手续费使用
-		if tokenBalance.LessThanOrEqual(decimal.Zero) {
-			missToken = append(missToken, address.Address)
 			continue
-		} else {
-
-			//判断是否可用Token余额超过可发送数量，则停止遍历
-			if useTokenBalance.GreaterThanOrEqual(toAmount) && len(missUtxoAddress) == 0 {
-				continue
-			}
-
-			//totalTokenBalance = totalTokenBalance.Add(tokenBalance)
-
-			//查找账户的utxo
-			unspents, tokenErr := decoder.wm.ListUnspent(0, address.Address)
-			if tokenErr != nil {
-				return err
-			}
-
-			//取最大余额
-			//if tokenBalance.GreaterThanOrEqual(toAmount) {
-			useTokenBalance = tokenBalance
-			useTokenAddress = address.Address
-			//}
-
-			//记录缺少utxo的地址
-			if len(unspents) == 0 {
-				missUtxoAddress = address.Address
-				//decoder.wm.Log.Debug("missUtxoAddress:", missUtxoAddress)
-			} else {
-				missUtxoAddress = ""
-			}
-			//else {
-			//useTokenBalance = tokenBalance
-			//useTokenBalance = useTokenBalance.Add(tokenBalance)
-			//}
-
-			availableUTXO = unspents
-			//availableUTXO = append(availableUTXO, unspents...)
-
 		}
 
-	}
+		if tokenBalance.LessThan(toAmount) {
+			continue
+		}
 
-	//遍历所有地址后，全部Token余额不足， 返回错误Token余额不足
-	if totalTokenBalance.LessThan(toAmount) {
-		return openwallet.Errorf(openwallet.ErrInsufficientTokenBalanceOfAddress, "account[%s] token[%s] total balance: %s is not enough! ", accountID, tokenCoin, totalTokenBalance.StringFixed(tokenDecimals))
+		//查找账户的utxo
+		unspents, tokenErr := decoder.wm.ListUnspent(0, address.Address)
+		if tokenErr != nil {
+			continue
+		}
+
+		availableAssetsUTXO, availableBalance, terr := decoder.wm.getAvailableUnspentByAssets(unspents, propertyID, toAmount)
+		if terr != nil {
+			continue
+		}
+
+		useTokenBalance = availableBalance
+		availableUTXO = availableAssetsUTXO
+		addressAllUTXO = unspents
 	}
 
 	//单个地址的可用Token余额不足够
 	if useTokenBalance.LessThan(toAmount) {
-		return openwallet.Errorf(openwallet.ErrInsufficientFees, "account[%s] token[%s] total balance is enough, but the available balance: %s of address[%s] is not enough! ", accountID, tokenCoin, useTokenBalance.StringFixed(tokenDecimals), useTokenAddress)
-	} else {
-		//可用Token余额足够，但没有utxo，返回错误及有Token余额的地址没有可用主链币
-		if len(missUtxoAddress) > 0 {
-			return openwallet.Errorf(openwallet.ErrInsufficientFees, "account[%s] token[%s] total balance is enough, but the utxo of address[%s] is empty! ", accountID, tokenCoin, missUtxoAddress)
-		}
-	}
-
-	//选择一个地址作为发送
-	//txFrom = []string{fmt.Sprintf("%s:%s", availableUTXO[0].Address, toAmount.StringFixed(tokenDecimals))}
-
-	//获取utxo，按小到大排序
-	sort.Sort(UnspentSort{availableUTXO, func(a, b *Unspent) int {
-
-		if a.Amount > b.Amount {
-			return 1
-		} else {
-			return -1
-		}
-	}})
-
-	//查找账户没有token余额的utxo，可用于手续费
-	if len(missToken) > 0 {
-		missTokenUnspents, err := decoder.wm.ListUnspent(0, missToken...)
-		if err != nil {
-			return err
-		}
-
-		availableUTXO = append(availableUTXO, missTokenUnspents...)
+		return openwallet.Errorf(openwallet.ErrInsufficientBalanceOfAddress, "account[%s] token[%s] total balance: %s is not enough! ", accountID, tokenCoin, useTokenBalance.String())
 	}
 
 	//获取手续费率
@@ -1017,18 +937,20 @@ func (decoder *TransactionDecoder) CreateTokenRawTransaction(wrapper openwallet.
 	//循环的计算余额是否足够支付发送数额+手续费
 	for {
 
-		usedUTXO = make([]*Unspent, 0)
+		usedUTXO = availableUTXO
 		balance = decimal.Zero
 
 		//计算一个可用于支付的余额
-		for _, u := range availableUTXO {
+		for _, u := range addressAllUTXO {
 
 			if u.Spendable {
 				ua, _ := decimal.NewFromString(u.Amount)
-				balance = balance.Add(ua)
-				usedUTXO = append(usedUTXO, u)
-				if balance.GreaterThanOrEqual(computeTotalSend) {
-					break
+				if ua.GreaterThan(decimal.Zero) {
+					balance = balance.Add(ua)
+					usedUTXO = append(usedUTXO, u)
+					if balance.GreaterThanOrEqual(computeTotalSend) {
+						break
+					}
 				}
 			}
 		}
@@ -1067,6 +989,7 @@ func (decoder *TransactionDecoder) CreateTokenRawTransaction(wrapper openwallet.
 	changeAddress := usedUTXO[0].Address
 
 	changeAmount := balance.Sub(actualFees)
+	changeTokenAmount := useTokenBalance.Sub(toAmount)
 	rawTx.FeeRate = feesRate.StringFixed(decoder.wm.Decimal())
 	rawTx.Fees = actualFees.StringFixed(decoder.wm.Decimal())
 
@@ -1077,6 +1000,7 @@ func (decoder *TransactionDecoder) CreateTokenRawTransaction(wrapper openwallet.
 	decoder.wm.Log.Std.Notice("Use %s: %v", decoder.wm.Symbol(), balance.StringFixed(decoder.wm.Decimal()))
 	decoder.wm.Log.Std.Notice("Fees %s: %v", decoder.wm.Symbol(), actualFees.StringFixed(decoder.wm.Decimal()))
 	decoder.wm.Log.Std.Notice("Change %s: %v", decoder.wm.Symbol(), changeAmount.StringFixed(decoder.wm.Decimal()))
+	decoder.wm.Log.Std.Notice("Change Token %s: %v", tokenCoin, changeTokenAmount.StringFixed(decoder.wm.Decimal()))
 	decoder.wm.Log.Std.Notice("Change Address: %v", changeAddress)
 	decoder.wm.Log.Std.Notice("-----------------------------------------------")
 
@@ -1089,7 +1013,12 @@ func (decoder *TransactionDecoder) CreateTokenRawTransaction(wrapper openwallet.
 		//outputAddrs[changeAddress] = changeAmount.StringFixed(decoder.wm.Decimal())
 	}
 
-	tokenOutputAddrs[toAddress] = toAmount.StringFixed(tokenDecimals)
+	tokenOutputAddrs = appendOutput(tokenOutputAddrs, toAddress, toAmount)
+	//tokenOutputAddrs[toAddress] = toAmount
+
+	if changeTokenAmount.GreaterThan(decimal.Zero) {
+		tokenOutputAddrs = appendOutput(tokenOutputAddrs, changeAddress, changeTokenAmount)
+	}
 
 	err = decoder.createTokenRawTransaction(wrapper, rawTx, usedUTXO, outputAddrs, tokenOutputAddrs)
 	if err != nil {
@@ -1099,13 +1028,246 @@ func (decoder *TransactionDecoder) CreateTokenRawTransaction(wrapper openwallet.
 	return nil
 }
 
+//CreateTokenSummaryRawTransaction 创建Token汇总交易
+func (decoder *TransactionDecoder) CreateTokenSummaryRawTransaction(wrapper openwallet.WalletDAI, sumRawTx *openwallet.SummaryRawTransaction) ([]*openwallet.RawTransactionWithError, error) {
+
+	var (
+		feesRate            = decimal.New(0, 0)
+		accountID           = sumRawTx.Account.AccountID
+		minTransfer, _      = decimal.NewFromString(sumRawTx.MinTransfer)
+		retainedBalance, _  = decimal.NewFromString(sumRawTx.RetainedBalance)
+		rawTxArray          = make([]*openwallet.RawTransactionWithError, 0)
+		outputAddrs         map[string]decimal.Decimal
+		tokenOutputAddrs    map[string]decimal.Decimal
+		feesSupportAccount  *openwallet.AssetsAccount
+		feesSupportUnspents []*Unspent
+	)
+
+	// 如果有提供手续费账户，检查账户是否存在
+	if feesAcount := sumRawTx.FeesSupportAccount; feesAcount != nil {
+		account, supportErr := wrapper.GetAssetsAccountInfo(feesAcount.AccountID)
+		if supportErr != nil {
+			return nil, openwallet.Errorf(openwallet.ErrAccountNotFound, "can not find fees support account")
+		}
+
+		feesSupportAccount = account
+		//查询可支持的utxo数组
+		feesSupportUnspents, _ = decoder.getAssetsAccountUnspents(wrapper, feesSupportAccount)
+	}
+
+	if len(sumRawTx.Coin.Contract.Address) == 0 {
+		return nil, fmt.Errorf("contract address is empty")
+	}
+
+	//Omni代币编号
+	propertyID := sumRawTx.Coin.Contract.Address
+	//tokenDecimals := int32(sumRawTx.Coin.Contract.Decimals)
+
+	if minTransfer.LessThan(retainedBalance) {
+		return nil, fmt.Errorf("mini transfer amount must be greater than address retained balance")
+	}
+
+	address, err := wrapper.GetAddressList(sumRawTx.AddressStartIndex, sumRawTx.AddressLimit, "AccountID", sumRawTx.Account.AccountID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(address) == 0 {
+		return nil, fmt.Errorf("[%s] have not addresses", accountID)
+	}
+
+	//取得费率
+	if len(sumRawTx.FeeRate) == 0 {
+		feesRate, err = decoder.wm.EstimateFeeRate()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		feesRate, _ = decimal.NewFromString(sumRawTx.FeeRate)
+	}
+
+	/*
+
+		1. 遍历账户所有地址。
+		2. 查询地址的token余额。
+		3. 查询地址是否有utxo。（地址要有足够的主币做手续费）
+		4. 保留余额，检查手续费是否足够
+		5. 构建omni交易单。
+		6. 把原始交易单加入到数组。
+
+	*/
+
+	for _, address := range address {
+
+		//清空临时变量
+		outputAddrs = make(map[string]decimal.Decimal, 0)
+		tokenOutputAddrs = make(map[string]decimal.Decimal, 0)
+		useUTXO := make([]*Unspent, 0)
+		//decoder.wm.Log.Debug("address.Address:", address.Address)
+		//查找地址token余额
+		tokenBalance, createErr := decoder.wm.GetAssetsBalance(propertyID, address.Address)
+		if createErr != nil {
+			continue
+		}
+
+		//decoder.wm.Log.Debug("tokenBalance:", tokenBalance)
+		//查询地址的utxo
+		unspents, createErr := decoder.wm.ListUnspent(sumRawTx.Confirms, address.Address)
+		if createErr != nil {
+			continue
+		}
+
+		assetsUTXO, _, terr := decoder.wm.getAvailableUnspentByAssets(unspents, propertyID, tokenBalance)
+		if terr != nil {
+			continue
+		}
+
+		useUTXO = append(useUTXO, assetsUTXO...)
+
+		cxcUTXO := decoder.wm.getCXCUnspent(unspents)
+
+		useUTXO = append(useUTXO, cxcUTXO...)
+
+		if tokenBalance.LessThan(minTransfer) || len(assetsUTXO) == 0 || tokenBalance.LessThanOrEqual(decimal.Zero) {
+			continue
+		}
+
+		//合计地址主币余额
+		addrBalance := decimal.Zero
+		changeAmount := decimal.Zero
+
+		for _, u := range useUTXO {
+			if u.Spendable {
+				ua, _ := decimal.NewFromString(u.Amount)
+				addrBalance = addrBalance.Add(ua)
+			}
+		}
+		//decoder.wm.Log.Debug("addrBalance:", addrBalance)
+		//计算手续费，构建交易单inputs + 1（可选手续费地址），输出2个，1个为目标地址，1个为找零
+		fees, createErr := decoder.wm.EstimateFee(int64(len(useUTXO))+1, 2, feesRate)
+		if createErr != nil {
+			return nil, createErr
+		}
+
+		totalCost := fees
+
+		//地址的主币余额要，不足够最低转账成本+手续费
+		if addrBalance.LessThan(totalCost) {
+
+			//创建一笔交易单
+			feeSupportRawTx := &openwallet.RawTransaction{
+				Coin:    sumRawTx.Coin,
+				Account: sumRawTx.Account,
+			}
+
+			//没有手续费账户支持，记录该交易单失败
+			if feesSupportAccount == nil {
+				rawTxWithErr := &openwallet.RawTransactionWithError{
+					RawTx: feeSupportRawTx,
+					Error: openwallet.Errorf(openwallet.ErrInsufficientFees, "address[%s] available %s: %s is less than totalCost: %s", address.Address, sumRawTx.Coin.Symbol, addrBalance.String(), totalCost.String()),
+				}
+				//添加到队列
+				rawTxArray = append(rawTxArray, rawTxWithErr)
+				continue
+			}
+
+			//查找足够付费的utxo
+			supportUnspent, supportErr := decoder.getUTXOSatisfyAmount(feesSupportUnspents, totalCost)
+			//supportUnspent, supportErr := decoder.getAssetsAccountUnspentSatisfyAmount(wrapper, feesSupportAccount, totalCost)
+			if supportErr != nil {
+				rawTxWithErr := &openwallet.RawTransactionWithError{
+					RawTx: feeSupportRawTx,
+					Error: supportErr,
+				}
+				//添加到队列
+				rawTxArray = append(rawTxArray, rawTxWithErr)
+				continue
+			}
+
+			//通过手续费账户创建交易单
+			supportAddress := address.Address
+			supportAmount, _ := decimal.NewFromString(supportUnspent.Amount)
+
+			decoder.wm.Log.Debugf("create transaction for fees support account")
+			decoder.wm.Log.Debugf("fees account: %s", feesSupportAccount.AccountID)
+			decoder.wm.Log.Debugf("mini support amount: %s", totalCost.String())
+			decoder.wm.Log.Debugf("allow support amount: %s", supportAmount.String())
+			decoder.wm.Log.Debugf("support address: %s", supportAddress)
+
+			//手续费地址utxo作为输入
+			useUTXO = append(useUTXO, supportUnspent)
+
+			//手续费地址 计算找零 = 手续费支持数量 + 地址余额 - 手续费 - 最低成本
+			changeAmount = supportAmount.Add(addrBalance).Sub(totalCost)
+			if changeAmount.GreaterThan(decimal.Zero) {
+				//主币输出第二个地址为找零地址，找零主币
+				outputAddrs = appendOutput(outputAddrs, supportUnspent.Address, changeAmount)
+				//outputAddrs[supportUnspent.Address] = changeAmount.StringFixed(coinDecimals)
+			}
+
+			//删除已使用的utxo
+			feesSupportUnspents = removeUTXO(feesSupportUnspents, supportUnspent)
+
+		} else {
+
+			//计算找零 = 地址余额 - 手续费 - 汇总地址的最低转账成本
+			changeAmount = addrBalance.Sub(totalCost)
+			if changeAmount.GreaterThan(decimal.Zero) {
+				//主币输出第二个地址为找零地址，找零主币到汇总地址
+				//outputAddrs = appendOutput(outputAddrs, address.Address, changeAmount)
+				outputAddrs = appendOutput(outputAddrs, sumRawTx.SummaryAddress, changeAmount)
+				//outputAddrs[address.Address] = changeAmount.StringFixed(coinDecimals)
+			}
+
+		}
+
+		//主币输出第一个为汇总地址，把地址所有主币也汇总到汇总地址
+		//outputAddrs = appendOutput(outputAddrs, sumRawTx.SummaryAddress, tokenBalance)
+		//outputAddrs[sumRawTx.SummaryAddress] = transferCost.StringFixed(coinDecimals)
+
+		//计算汇总数量
+		//sumTokenAmount := tokenBalance.Sub(retainedBalance)
+		//omni输出汇总地址及汇总数量
+		tokenOutputAddrs = appendOutput(tokenOutputAddrs, sumRawTx.SummaryAddress, tokenBalance)
+		//tokenOutputAddrs[sumRawTx.SummaryAddress] = sumTokenAmount.StringFixed(tokenDecimals)
+
+		decoder.wm.Log.Debugf("tokenBalance: %v", tokenBalance)
+		decoder.wm.Log.Debugf("addressBalance: %v", addrBalance)
+		decoder.wm.Log.Debugf("fees: %v", fees)
+		decoder.wm.Log.Debugf("changeAmount: %v", changeAmount)
+		decoder.wm.Log.Debugf("sumTokenAmount: %v", tokenBalance)
+
+		//创建一笔交易单
+		rawTx := &openwallet.RawTransaction{
+			Coin:     sumRawTx.Coin,
+			Account:  sumRawTx.Account,
+			FeeRate:  sumRawTx.FeeRate,
+			To:       map[string]string{sumRawTx.SummaryAddress: tokenBalance.String()},
+			Fees:     fees.StringFixed(decoder.wm.Decimal()),
+			Required: 1,
+		}
+
+		createTxErr := decoder.createTokenRawTransaction(wrapper, rawTx, useUTXO, outputAddrs, tokenOutputAddrs)
+		rawTxWithErr := &openwallet.RawTransactionWithError{
+			RawTx: rawTx,
+			Error: openwallet.ConvertError(createTxErr),
+		}
+
+		//创建成功，添加到队列
+		rawTxArray = append(rawTxArray, rawTxWithErr)
+
+	}
+
+	return rawTxArray, nil
+}
+
 //createTokenRawTransaction 创建token原始交易单
 func (decoder *TransactionDecoder) createTokenRawTransaction(
 	wrapper openwallet.WalletDAI,
 	rawTx *openwallet.RawTransaction,
 	usedUTXO []*Unspent,
 	coinTo map[string]decimal.Decimal,
-	tokenTo map[string]string,
+	tokenTo map[string]decimal.Decimal,
 ) error {
 
 	var (
@@ -1113,13 +1275,13 @@ func (decoder *TransactionDecoder) createTokenRawTransaction(
 		vins             = make([]cxcTransaction.Vin, 0)
 		vout             cxcTransaction.Vout
 		txUnlocks        = make([]cxcTransaction.TxUnlock, 0)
+		tokenOutput      = make([]cxcTransaction.AssetTransfer, 0)
 		accountTotalSent = decimal.Zero
 		toAmount         = decimal.Zero
 		txFrom           = make([]string, 0)
 		txTo             = make([]string, 0)
 		accountID        = rawTx.Account.AccountID
 		addressPrefix    cxcTransaction.AddressPrefix
-		tokenToAddr      string
 	)
 
 	if len(usedUTXO) == 0 {
@@ -1137,20 +1299,32 @@ func (decoder *TransactionDecoder) createTokenRawTransaction(
 	//Token代币编号
 	propertyID := rawTx.Coin.Contract.Address
 	tokenDecimals := int32(rawTx.Coin.Contract.Decimals)
+	assetsInfo, err := decoder.wm.ShowAssets(propertyID)
+	if err != nil {
+		return err
+	}
+
+	selltxidhalf := assetsInfo.Selltxid[:len(assetsInfo.Selltxid)/2]
 
 	//记录输入输出明细
 	for addr, amount := range tokenTo {
-		//选择utxo的第一个地址作为发送放
-		txFrom = []string{fmt.Sprintf("%s:%s", usedUTXO[0].Address, amount)}
 		//接收方的地址和数量
-		txTo = []string{fmt.Sprintf("%s:%s", addr, amount)}
-		tokenToAddr = addr
-		toAmount, _ = decimal.NewFromString(amount)
+		txTo = append(txTo, fmt.Sprintf("%s:%s", addr, amount.Shift(tokenDecimals)))
+		//toAmount, _ = decimal.NewFromString(amount)
 		//计算账户的实际转账amount
 		addresses, findErr := wrapper.GetAddressList(0, -1, "AccountID", accountID, "Address", addr)
 		if findErr != nil || len(addresses) == 0 {
 			accountTotalSent = accountTotalSent.Add(toAmount)
 		}
+
+		tokenAmount := amount.Shift(tokenDecimals)
+		tokenDetail := cxcTransaction.AssetTransfer{
+			FirstSellTxID: selltxidhalf,
+			Address:       addr,
+			Amount:        uint64(tokenAmount.IntPart()),
+		}
+
+		tokenOutput = append(tokenOutput, tokenDetail)
 	}
 
 	//UTXO如果大于设定限制，则分拆成多笔交易单发送
@@ -1167,7 +1341,12 @@ func (decoder *TransactionDecoder) createTokenRawTransaction(
 		txUnlock := cxcTransaction.TxUnlock{LockScript: utxo.ScriptPubKey, SigType: cxcTransaction.SigHashAll}
 		txUnlocks = append(txUnlocks, txUnlock)
 
-		//txFrom = append(txFrom, fmt.Sprintf("%s:%s", utxo.Address, utxo.Amount))
+		for _, as := range utxo.Assets {
+			if as.Assetref == propertyID {
+				amount, _ := decimal.NewFromString(as.Qty)
+				txFrom = append(txFrom, fmt.Sprintf("%s:%s", utxo.Address, amount.Shift(tokenDecimals)))
+			}
+		}
 	}
 
 	//装配输入
@@ -1191,21 +1370,6 @@ func (decoder *TransactionDecoder) createTokenRawTransaction(
 		}
 	}
 
-	assetsInfo, err := decoder.wm.ShowAssets(propertyID)
-	if err != nil {
-		return err
-	}
-
-	selltxidhalf := assetsInfo.Selltxid[:len(assetsInfo.Selltxid)/2]
-
-	tokenAmount := toAmount.Shift(tokenDecimals)
-
-	tokenDetail := cxcTransaction.AssetTransfer{
-		FirstSellTxID: selltxidhalf,
-		Address:       tokenToAddr,
-		Amount:        uint64(tokenAmount.IntPart()),
-	}
-
 	//锁定时间
 	lockTime := uint32(0)
 
@@ -1213,7 +1377,7 @@ func (decoder *TransactionDecoder) createTokenRawTransaction(
 	replaceable := false
 
 	/////////构建空交易单
-	emptyTrans, err := cxcTransaction.CreateEmptyAssetRawTransaction(vins, tokenDetail, vout, lockTime, replaceable, addressPrefix)
+	emptyTrans, err := cxcTransaction.CreateEmptyAssetRawTransaction(vins, tokenOutput, vout, lockTime, replaceable, addressPrefix)
 
 	if err != nil {
 		return fmt.Errorf("create transaction failed, unexpected error: %v", err)
@@ -1221,7 +1385,7 @@ func (decoder *TransactionDecoder) createTokenRawTransaction(
 	}
 
 	////////构建用于签名的交易单哈希
-	transHash, err := cxcTransaction.CreateRawTransactionHashForSig(emptyTrans, txUnlocks, false, addressPrefix)
+	transHash, err := cxcTransaction.CreateRawTransactionHashForSig(emptyTrans, txUnlocks, decoder.wm.Config.SupportSegWit, addressPrefix)
 	if err != nil {
 		return fmt.Errorf("create transaction hash for sig failed, unexpected error: %v", err)
 		//decoder.wm.Log.Error("获取待签名交易单哈希失败")
@@ -1293,7 +1457,7 @@ func (decoder *TransactionDecoder) createTokenRawTransaction(
 // CreateSummaryRawTransactionWithError 创建汇总交易，返回能原始交易单数组（包含带错误的原始交易单）
 func (decoder *TransactionDecoder) CreateSummaryRawTransactionWithError(wrapper openwallet.WalletDAI, sumRawTx *openwallet.SummaryRawTransaction) ([]*openwallet.RawTransactionWithError, error) {
 	if sumRawTx.Coin.IsContract {
-		return nil, fmt.Errorf("contract transfer is not support")
+		return decoder.CreateTokenSummaryRawTransaction(wrapper, sumRawTx)
 	} else {
 		return decoder.CreateBTCSummaryRawTransaction(wrapper, sumRawTx)
 	}
@@ -1381,7 +1545,8 @@ func resetTransHashFunc(origins []cxcTransaction.TxHash, addr string, start int)
 	end := 0
 	for i := start; i < len(origins); i++ {
 		h := origins[i]
-		if h.GetNormalTxAddress() == addr {
+		txAddress := h.GetNormalTxAddress()
+		if txAddress == addr {
 			newHashs = append(newHashs, h)
 			end = i
 			break

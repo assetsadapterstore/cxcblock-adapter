@@ -133,6 +133,48 @@ func (wm *WalletManager) getListUnspentByCore(min uint64, addresses ...string) (
 	return utxos, nil
 }
 
+func (wm *WalletManager) getAvailableUnspentByAssets(unspents []*Unspent, assetsID string, amount decimal.Decimal) ([]*Unspent, decimal.Decimal, *openwallet.Error) {
+
+	availableUTXO := make([]*Unspent, 0)
+	totalBalance := decimal.Zero
+	//计算一个可用于支付的余额
+	for _, u := range unspents {
+
+		if u.Spendable {
+
+			for _, as := range u.Assets {
+				if as.Assetref == assetsID {
+					asamount, _ := decimal.NewFromString(as.Qty)
+					totalBalance = totalBalance.Add(asamount)
+					availableUTXO = append(availableUTXO, u)
+					if totalBalance.GreaterThanOrEqual(amount) {
+						return availableUTXO, totalBalance, nil
+					}
+				}
+			}
+		}
+	}
+
+	return nil, totalBalance, openwallet.Errorf(openwallet.ErrInsufficientBalanceOfAddress, "address have not available assets utxo")
+}
+
+func (wm *WalletManager) getCXCUnspent(unspents []*Unspent) []*Unspent {
+
+	availableUTXO := make([]*Unspent, 0)
+
+	for _, u := range unspents {
+
+		if u.Spendable {
+
+			if len(u.Assets) == 0 {
+				availableUTXO = append(availableUTXO, u)
+			}
+		}
+	}
+
+	return availableUTXO
+}
+
 //SendRawTransaction 广播交易
 func (wm *WalletManager) SendRawTransaction(txHex string) (string, error) {
 
