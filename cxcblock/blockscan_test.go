@@ -43,7 +43,7 @@ func TestGetBlockHeight(t *testing.T) {
 }
 
 func TestGetLocalNewBlock(t *testing.T) {
-	height, hash := tw.GetLocalNewBlock()
+	height, hash, _ := tw.Blockscanner.GetLocalNewBlock()
 	t.Logf("GetLocalBlockHeight height = %d \n", height)
 	t.Logf("GetLocalBlockHeight hash = %v \n", hash)
 }
@@ -53,7 +53,7 @@ func TestSaveLocalBlockHeight(t *testing.T) {
 	header, _ := bs.GetCurrentBlockHeader()
 	t.Logf("SaveLocalBlockHeight height = %d \n", header.Height)
 	t.Logf("GetLocalBlockHeight hash = %v \n", header.Hash)
-	tw.SaveLocalNewBlock(header.Height, header.Hash)
+	tw.Blockscanner.SaveLocalNewBlock(header.Height, header.Hash)
 }
 
 func TestGetBlockHash(t *testing.T) {
@@ -176,7 +176,7 @@ func TestBTCBlockScanner_Run(t *testing.T) {
 }
 
 func TestGetUnscanRecords(t *testing.T) {
-	list, err := tw.GetUnscanRecords()
+	list, err := tw.Blockscanner.GetUnscanRecords()
 	if err != nil {
 		t.Errorf("GetUnscanRecords failed unexpected error: %v\n", err)
 		return

@@ -17,9 +17,6 @@ package cxcblock
 
 import (
 	"encoding/hex"
-	"fmt"
-	"github.com/blocktree/openwallet/common"
-	"github.com/blocktree/openwallet/crypto"
 	"github.com/blocktree/openwallet/openwallet"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/shopspring/decimal"
@@ -238,23 +235,6 @@ func (b *Block) BlockHeader(symbol string) *openwallet.BlockHeader {
 	obj.Time = b.Time
 	obj.Symbol = symbol
 
-	return &obj
-}
-
-//UnscanRecords 扫描失败的区块及交易
-type UnscanRecord struct {
-	ID          string `storm:"id"` // primary key
-	BlockHeight uint64
-	TxID        string
-	Reason      string
-}
-
-func NewUnscanRecord(height uint64, txID, reason string) *UnscanRecord {
-	obj := UnscanRecord{}
-	obj.BlockHeight = height
-	obj.TxID = txID
-	obj.Reason = reason
-	obj.ID = common.Bytes2Hex(crypto.SHA256([]byte(fmt.Sprintf("%d_%s", height, txID))))
 	return &obj
 }
 
