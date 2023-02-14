@@ -3,8 +3,7 @@ module github.com/assetsadapterstore/cxcblock-adapter
 go 1.12
 
 require (
-	github.com/asdine/storm v2.1.2+incompatible
-	github.com/astaxie/beego v1.11.1
+	github.com/astaxie/beego v1.12.2
 	github.com/blocktree/go-owcdrivers v1.1.18
 	github.com/blocktree/go-owcrypt v1.0.3
 	github.com/blocktree/openwallet v1.5.5
